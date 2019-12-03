@@ -23,6 +23,8 @@ void setup()
   Serial.begin(115200);
   Serial.println();
 
+  pinMode(LED_BUILTIN, OUTPUT);
+  
   Serial.printf("Connecting to %s ", ssid);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
@@ -51,6 +53,14 @@ void loop(){
     Serial.printf("UDP packet contents at %ld: %s\n", internal_time,incomingPacket);
     sscanf(incomingPacket,"%d:%d:%d -- %s",&hh_time_from_server,&mm_time_from_server,&ss_time_from_server,message);
     Serial.printf("Message received --> %s\n",message);
+    
+    if(strcmp(message,"ON")){
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+    else if (strcmp(message,"OFF")){
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+    
     // send back a reply, to the IP address and port we got the packet from
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     
