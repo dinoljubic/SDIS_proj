@@ -71,8 +71,9 @@ void loop(){
     Serial.printf("diff intern = %ld\n",currentMillis-previousMillis);
     Serial.printf("diff UDP    = %ld\n",ss_time_from_server-previousTimeFromUDP);
     previousTimeFromUDP=ss_time_from_server;
-    
-    (void) toggleLED(message);
+
+    if(ss_time_from_server%10)
+      (void) toggleLED(message);
     previousMillis = currentMillis;
    
     
