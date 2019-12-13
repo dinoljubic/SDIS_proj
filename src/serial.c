@@ -36,7 +36,7 @@ void serial_init( UART_BautRate baud ){
 
 void serial_test_task( void *param ){
     while(1){
-        printf("Test Printf. Clock: %d.\n", clock_get());
+        // printf("Test Printf. Clock: %d.\n", clock_get());
         vTaskDelay(500/portTICK_RATE_MS);
     }
 }

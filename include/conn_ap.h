@@ -30,6 +30,9 @@ extern "C" {
 #endif
 
 void conn_ap_init(void);
+void soft_ap_init(void);
+void soft_ap_disable(void);
+void wifi_handle_event_cb(System_Event_t *evt);
 
 #ifdef __cplusplus
 }

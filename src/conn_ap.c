@@ -21,20 +21,76 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-#include "esp_common.h"
+#include "config.h"
 #include "espconn.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "esp_sta.h"
 #include "freertos/queue.h"
 #include "conn_ap.h"
 
-#define DEMO_AP_SSID      "laptop"
-#define DEMO_AP_PASSWORD "pasvordddd"     
-#define SOFT_AP_SSID "DEMO_AP"
-#define SOFT_AP_PASSWORD "12345678"
+#define WIFI_AP_MAX_CONN    10
+
+typedef struct {
+    uint8   ipAddr[4];
+    uint16  recvPort;
+    uint16  sendPort;
+} device_t;
+
+struct {
+    uint8       num;
+    bool        active[WIFI_AP_MAX_CONN];
+    device_t    devices[WIFI_AP_MAX_CONN];
+} connectedDevices;
+
+device_t master;
+/*
+uint8 wifi_init( void ){
+    connectedDevices.num = 0;
+    conn_ap_init(  );
+
+    return 0;
+}
+*/
+
+void udpClient_Test()
+{
+    #if esp==1
+    soft_ap_init();
+    #else
+    conn_ap_init();
+    #endif
+
+    vTaskDelay(1000);
+    
+    #if esp==1
+    udpServer(NULL);
+    #else
+    udpClient(NULL);
+    #endif
+    
+    vTaskDelete(NULL);
+}
+
+/*
+// Keepin track of connected devices
+uint8 wifi_ap_deviceConnected (Event_StaMode_Connected_t *evt)
+{
+    uint8 i, slot=-1;
+    // Add device to list
+    for (i=0;i<WIFI_AP_MAX_CONN;i++){
+        if (connectedDevices.active[i]==false)
+            break;
+    }
+    if (connectedDevices.active[i]!=false)
+        return 1;   // No free slots for device
+
+    // store ip
+    connectedDevices.devices[i].ipAddr[0] = 0;
+}
+*/
 
 void wifi_handle_event_cb(System_Event_t *evt)
 {
+    //printf("event %x\n", evt->event_id);
     switch (evt->event_id) {
         case EVENT_STAMODE_CONNECTED:
             printf("connect to ssid %s, channel %d\n", evt->event_info.connected.ssid,
@@ -63,7 +119,7 @@ void wifi_handle_event_cb(System_Event_t *evt)
         default:
             break;
     }
-} 
+}
 
 void conn_ap_init(void)
 {
@@ -89,7 +145,6 @@ void soft_ap_init(void)
     config->max_connection = 4;
     wifi_softap_set_config(config); // Set ESP8266 soft-AP config
     free(config);
-
     struct station_info * station = wifi_softap_get_station_info();
     while (station) {
         printf("bssid : MACSTR, ip : IPSTR/n", MAC2STR(station->bssid), IP2STR(&station->ip));
@@ -97,15 +152,21 @@ void soft_ap_init(void)
     }
     wifi_softap_free_station_info(); // Free it by calling functionss
     wifi_softap_dhcps_stop(); // disable soft-AP DHCP server
-
     struct ip_info info;
-    IP4_ADDR(&info.ip, 192, 168, 5, 1); // set IP
-    IP4_ADDR(&info.gw, 192, 168, 5, 1); // set gateway
+    IP4_ADDR(&info.ip, 192, 168, 47, 1); // set IP
+    IP4_ADDR(&info.gw, 192, 168, 47, 1); // set gateway
     IP4_ADDR(&info.netmask, 255, 255, 255, 0); // set netmask
     wifi_set_ip_info(SOFTAP_IF, &info);
     struct dhcps_lease dhcp_lease;
-    IP4_ADDR(&dhcp_lease.start_ip, 192, 168, 5, 100);
-    IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 5, 105);
+    IP4_ADDR(&dhcp_lease.start_ip, 192, 168, 47, 100);
+    IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 47, 110);
     wifi_softap_set_dhcps_lease(&dhcp_lease);
     wifi_softap_dhcps_start(); // enable soft-AP DHCP server
+}
+
+
+void soft_ap_disable(void)
+{
+    printf("Disabling AP");
+    wifi_set_opmode(STATION_MODE);
 }
