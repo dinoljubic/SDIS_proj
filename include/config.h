@@ -12,8 +12,13 @@
 #include "freertos/FreeRTOS.h"
 
 #define DEBUG   1
-// esp=1 is master
-#define esp     1
+
+#define SERVER  1
+#define CLIENT  2
+
+/* Change server/client role here *********/
+#define esp     SERVER
+/******************************************/
 
 // TODO: 2 tests - (1) toggle both LED's at the same time; (2) Round-trip msg to toggle own LED
 #define test    2
@@ -46,6 +51,11 @@
 #define boardIO_prior           3
 #define serial_test_task_mem    100
 #define serial_test_task_prior  4
+#define UDP_client_task_mem     200
+#define UDP_client_task_prior   5
+#define UDP_server_task_mem     300
+#define UDP_server_task_prior   4
+
 
 // Various parameters
 // Clock
@@ -54,6 +64,9 @@
 #define CLOCK_TIMER_PERIOD_US   1000
 #define CLOCK_HWTIMER_PERIOD    CPU_CLK_FREQ/CLOCK_HWTIMER_FREQ_DIV*CLOCK_TIMER_PERIOD_US
 
+#define DELAY_MS(t)             (t)/portTICK_RATE_MS
+
+#define TIME_CORR_AVERAGE       10
 
 // Debug macros
 #if DEBUG

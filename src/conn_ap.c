@@ -25,34 +25,32 @@
 #include "espconn.h"
 #include "esp_sta.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
+#include "udp_client.h"
 #include "conn_ap.h"
 
-#define WIFI_AP_MAX_CONN    10
-
-typedef struct {
-    uint8   ipAddr[4];
-    uint16  recvPort;
-    uint16  sendPort;
-} device_t;
-
+// AP struct
 struct {
     uint8       num;
+    uint32      myIP;
     bool        active[WIFI_AP_MAX_CONN];
-    device_t    devices[WIFI_AP_MAX_CONN];
-} connectedDevices;
+    uint32      deviceIP[WIFI_AP_MAX_CONN];
+} APStruct;
 
-device_t master;
-/*
-uint8 wifi_init( void ){
-    connectedDevices.num = 0;
-    conn_ap_init(  );
 
-    return 0;
-}
-*/
+// Station struct
+struct {
+    uint32      masterIP;
+    uint32      myIP;
+} StaStruct;
 
-void udpClient_Test()
-{
+
+void wifi_init_task( void *param ){
+    
+    // Clear structures
+    memset(&APStruct, 0, sizeof(APStruct));
+    memset(&StaStruct, 0, sizeof(StaStruct));
+
     #if esp==1
     soft_ap_init();
     #else
@@ -62,58 +60,66 @@ void udpClient_Test()
     vTaskDelay(1000);
     
     #if esp==1
-    udpServer(NULL);
+    xTaskCreate(udpServer, "UDP server", UDP_server_task_mem, NULL, UDP_server_task_prior, NULL);
     #else
-    udpClient(NULL);
+    xTaskCreate(udpClient, "UDP client", UDP_client_task_mem, NULL, UDP_client_task_prior, NULL);
     #endif
     
     vTaskDelete(NULL);
 }
 
-/*
-// Keepin track of connected devices
-uint8 wifi_ap_deviceConnected (Event_StaMode_Connected_t *evt)
-{
-    uint8 i, slot=-1;
-    // Add device to list
-    for (i=0;i<WIFI_AP_MAX_CONN;i++){
-        if (connectedDevices.active[i]==false)
-            break;
-    }
-    if (connectedDevices.active[i]!=false)
-        return 1;   // No free slots for device
+void wifi_APdevice_connected( void ){
 
-    // store ip
-    connectedDevices.devices[i].ipAddr[0] = 0;
 }
-*/
+
+uint8 wifi_APdevice_disconnected( uint8 *ip ){
+    uint32 ip32;
+    memcpy(&ip32, ip, 4);
+    for (uint8 i=0;i<WIFI_AP_MAX_CONN;i++){
+        if (APStruct.deviceIP[i] == ip32){
+            APStruct.deviceIP[i] = 0;
+            APStruct.num--;
+            APStruct.active[i] = false;
+            return 0;
+        }
+    }
+    return 1;
+}
+
 
 void wifi_handle_event_cb(System_Event_t *evt)
 {
     //printf("event %x\n", evt->event_id);
     switch (evt->event_id) {
         case EVENT_STAMODE_CONNECTED:
-            printf("connect to ssid %s, channel %d\n", evt->event_info.connected.ssid,
+            DBG_PRINT("connect to ssid %s, channel %d\n", evt->event_info.connected.ssid,
                     evt->event_info.connected.channel);
             break;
         case EVENT_STAMODE_DISCONNECTED:
-            printf("disconnect from ssid %s, reason %d\n", evt->event_info.disconnected.ssid,
+            DBG_PRINT("disconnect from ssid %s, reason %d\n", evt->event_info.disconnected.ssid,
                     evt->event_info.disconnected.reason);
             break;
         case EVENT_STAMODE_AUTHMODE_CHANGE:
-            printf("mode: %d -> %d\n", evt->event_info.auth_change.old_mode, evt->event_info.auth_change.new_mode);
+            DBG_PRINT("mode: %d -> %d\n", evt->event_info.auth_change.old_mode, evt->event_info.auth_change.new_mode);
             break;
         case EVENT_STAMODE_GOT_IP:
-            printf("ip:" IPSTR ",mask:" IPSTR ",gw:" IPSTR, IP2STR(&evt->event_info.got_ip.ip),
+            // Client-only; store own IP and server's (GW)
+            memcpy(&StaStruct.masterIP, &evt->event_info.got_ip.gw, 4);
+            memcpy(&StaStruct.myIP, &evt->event_info.got_ip.ip, 4);
+            // Introduce to server
+
+            DBG_PRINT("ip:" IPSTR ",mask:" IPSTR ",gw:" IPSTR, IP2STR(&evt->event_info.got_ip.ip),
                     IP2STR(&evt->event_info.got_ip.mask), IP2STR(&evt->event_info.got_ip.gw));
-            printf("\n");
+            DBG_PRINT("\n");
             break;
         case EVENT_SOFTAPMODE_STACONNECTED:
-            printf("station: " MACSTR "join, AID = %d\n", MAC2STR(evt->event_info.sta_connected.mac),
+            // 
+            DBG_PRINT("station: " MACSTR "join, AID = %d\n", MAC2STR(evt->event_info.sta_connected.mac),
                     evt->event_info.sta_connected.aid);
             break;
         case EVENT_SOFTAPMODE_STADISCONNECTED:
-            printf("station: " MACSTR "leave, AID = %d\n", MAC2STR(evt->event_info.sta_disconnected.mac),
+            // Find and remove IP from the list
+            DBG_PRINT("station: " MACSTR "leave, AID = %d\n", MAC2STR(evt->event_info.sta_disconnected.mac),
                     evt->event_info.sta_disconnected.aid);
             break;
         default:
@@ -159,7 +165,7 @@ void soft_ap_init(void)
     wifi_set_ip_info(SOFTAP_IF, &info);
     struct dhcps_lease dhcp_lease;
     IP4_ADDR(&dhcp_lease.start_ip, 192, 168, 47, 100);
-    IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 47, 110);
+    IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 47, 100+WIFI_AP_MAX_CONN-1);
     wifi_softap_set_dhcps_lease(&dhcp_lease);
     wifi_softap_dhcps_start(); // enable soft-AP DHCP server
 }

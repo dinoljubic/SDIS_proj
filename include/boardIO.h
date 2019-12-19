@@ -10,7 +10,7 @@
 // LED codes
 
 void boardIO_init( void );
-void boardIO_toggleLED( void );
+void boardIO_toggleLED( uint32 param );
 void boardIO_setLED( uint32 value );
 void boardIO_task(void* param);
 

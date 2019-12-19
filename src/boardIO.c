@@ -22,8 +22,10 @@ void boardIO_setLED( uint32 value ){
     GPIO_OUTPUT(LED_IO_PIN, ledState = (uint8)value);
 }
 
-void boardIO_toggleLED( void ){
-    GPIO_OUTPUT(LED_IO_PIN, ~ledState);
+void boardIO_toggleLED( uint32 param ){
+    GPIO_OUTPUT(LED_IO_PIN, ledState);
+    ledState = (ledState == 0);
+    DBG_PRINT("led state: %d", ledState);
 }
 
 void boardIO_task(void* param)

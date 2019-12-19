@@ -58,17 +58,26 @@ static void alarm_getNext( void ){
     uint32 time = clock_getMS();
     uint8 minIndex;
 
+    if (clockStruct.evtNum == 0){
+        clockStruct.nextEvt = NULL;
+        clockStruct.delayToNext = 0;
+        return;
+    }
+
     for (uint8 i=0;i<CLOCK_EVT_QUEUE_SIZE;i++){
+        // Clear missed events
+        if (clockStruct.events[i].time < time && clockStruct.events[i].time != 0){
+            clockStruct.events[i].time = 0;
+            clockStruct.events[i].func = NULL;
+            clockStruct.evtNum--;
+        }
+        // Find next
         if (clockStruct.events[i].time < minTime && clockStruct.events[i].func != NULL){
             minTime = clockStruct.events[i].time;
             minIndex = i;
         }
-        // Clear missed events
-        if (clockStruct.events[i].time < time){
-            clockStruct.events[i].time = 0;
-            clockStruct.events[i].func = NULL;
-        }
     }
+    
     clockStruct.nextEvt = &clockStruct.events[minIndex];
     clockStruct.delayToNext =  minTime - time;
 }
@@ -92,12 +101,17 @@ static uint8 _alarm_setTask(uint32 timeMS, void(*fun)(uint32), uint32 param){
     clockStruct.events[i].time = timeMS;
     clockStruct.events[i].func = fun;
     clockStruct.events[i].param = param;
-    
+    // if list is empty or if new task precedes
     if (clockStruct.evtNum == 0){
         //time = clock_getMS();
         clockStruct.delayToNext = timeMS-time;
         clockStruct.nextEvt = &clockStruct.events[i];
     }
+    else if (clockStruct.nextEvt->time > timeMS){
+        clockStruct.delayToNext = timeMS-time;
+        clockStruct.nextEvt = &clockStruct.events[i];
+    }
+
     clockStruct.evtNum++;
     return 0;
 }
@@ -105,7 +119,8 @@ static uint8 _alarm_setTask(uint32 timeMS, void(*fun)(uint32), uint32 param){
 // Mutex wrapper for _alarm_setTask
 uint8 alarm_setTask( uint32 timeMS, void(*fun)(uint32), uint32 param ){
     uint8 retVal;
-    if (xSemaphoreTake(clockStruct.clockQueueMutexHandle, (portTickType) 100) != pdTRUE)
+    // DBG_PRINT("Setting alarm");
+    if (xSemaphoreTake(clockStruct.clockQueueMutexHandle, (portTickType) 20) != pdTRUE)
         return 2;
     retVal = _alarm_setTask( timeMS, fun, param );
     xSemaphoreGive(clockStruct.clockQueueMutexHandle);
@@ -127,6 +142,9 @@ uint32 clock_getMS( void ){
 
 void clock_setMS( uint32 time ){
     clockStruct.ticks = 1000*time/clockStruct.tickPeriod_us;
+    alarm_getNext();
+
+    DBG_PRINT("Correcting time to %d\n",time);
 }
 
 void clock_InterruptHandler( void ){
@@ -138,6 +156,7 @@ void clock_InterruptHandler( void ){
         clockStruct.delayToNext--;
 
         if (clockStruct.delayToNext == 0){
+            // DBG_PRINT("Tasks:%d\n", clockStruct.evtNum);
             if (clockStruct.nextEvt->func != NULL){
                 clockStruct.nextEvt->func(clockStruct.nextEvt->param);
                 // Clear
