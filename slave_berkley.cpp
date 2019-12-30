@@ -22,16 +22,13 @@ void error(const char *msg)
 	exit(0);
 }
 
-int syncronization(int portno){
-	long sockfd, n;
-	struct sockaddr_in serv_addr;
-	struct hostent *server;
-	int l_clock = 0;
-	char buffer[256];
+// parametros globales
+long sockfd, n;
+struct sockaddr_in serv_addr;
+struct hostent *server;
 
-	srand(time(0));						// Initiating the random function with current time as input
-	l_clock = (rand()%25) + 5;				// Defining the range of random numbers from 5 to 30
-
+void startSync(int portno){
+	// beginning start socket
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if(sockfd < 0)
@@ -49,8 +46,20 @@ int syncronization(int portno){
 	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
 	serv_addr.sin_port = htons(portno);
 
-	if(connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
+	if(connect(sockfd,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 		error("ERROR connecting");
+
+	// end opening
+}
+int sync(int portno){
+	// parametros locales
+	int l_clock = 0;
+	char buffer[256];
+
+	srand(time(0));						// Initiating the random function with current time as input
+	l_clock = (rand()%25) + 5;				// Defining the range of random numbers from 5 to 30
+
+
 
 	cout << "My logical Clock: " << l_clock << endl; // Printing machine's local logical clock
 
@@ -91,8 +100,12 @@ int syncronization(int portno){
 
 	cout << "My Adjusted clock: " << l_clock << endl;
 
-	close(sockfd);	//Close the client socket and terminate the connection
+	
 	return l_clock;
+}
+
+void closeSync(){
+	close(sockfd);	//Close the client socket and terminate the connection
 }
 
 int main(int argc, char *argv[])
@@ -104,9 +117,16 @@ int main(int argc, char *argv[])
 	}
 	int portno = atoi(argv[1]);
 
+	
+
 	for (int i = 0; i < 5; ++i) {
-		syncronization(portno);
+		startSync(portno);
+		cout << "Iteracao num: " << i << endl;
+		sync(portno);
+		closeSync();
+		// sleep(1);
 	}
+
 
 
 	return 0;

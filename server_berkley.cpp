@@ -27,6 +27,11 @@ int n;
 
 int l_clock = 0, tot = 0, avg = 0, cnt = 0, t=0;
 
+long sockfd, newsockfd[10];//, portno;
+socklen_t clilen;
+
+struct sockaddr_in serv_addr, cli_addr;
+
 void Berkeley(long newsockfd)
 {
   bzero(buffer,256);
@@ -86,18 +91,7 @@ void *NewConnection(void *newsockfd) //thread function for each client request
   pthread_exit(NULL);
 }
 
-
-void synchronization(int portno){
-  long sockfd, newsockfd[10];//, portno;
-  socklen_t clilen;
-
-  struct sockaddr_in serv_addr, cli_addr;
-
-  pthread_t threads[10];  //threads for handling client requests
-  srand(time(0));           // Initiating the random function with current time as input
-  l_clock = (rand()%25) + 5;        // Defining the range of random numbers from 5 to 30
-
-
+void startSync(int portno){
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   if(sockfd < 0)
@@ -119,6 +113,18 @@ void synchronization(int portno){
 
   if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     error("ERROR on binding");
+}
+
+
+
+void sync(int portno){
+
+  pthread_t threads[10];  //threads for handling client requests
+  srand(time(0));           // Initiating the random function with current time as input
+  l_clock = (rand()%25) + 5;        // Defining the range of random numbers from 5 to 30
+
+
+  
 
   listen(sockfd,10);
   clilen = sizeof(cli_addr);
@@ -160,7 +166,7 @@ void synchronization(int portno){
 
 }
 
-void close_sync(){
+void closeSync(){
   close(sockfd);
   //  return 0;
   pthread_exit(NULL);
@@ -173,9 +179,15 @@ int main(int argc, char *argv[])
     fprintf(stderr,"ERROR, no port provided\n");
     exit(1);
   }
+
   int portno = atoi(argv[1]);
+  startSync(portno);
   for (int i = 0; i < 5; ++i) {
-    synchronization(portno);
+    cnt = 0;
+    cout << "Iteracao num: " << i << endl;
+    sync(portno);
+    // sleep(1);
   }
+  closeSync();
 
 }
