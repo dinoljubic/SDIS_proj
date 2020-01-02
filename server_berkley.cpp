@@ -48,13 +48,13 @@ void Berkeley(long newsockfd)
   if (n < 0) error("ERROR writing to socket");
 
   bzero(buffer,256);
-  read((long)newsockfd,buffer,255);     //Reading the specific time difference of connected machines
+  read((long)newsockfd,buffer,255);     // Reading the specific time difference of connected machines
   cout << "Time Difference of Machine '" << newsockfd << "' : " << buffer << endl;
   
   ss1 << buffer;
   string tmpstr2 = ss1.str();
   
-  unsigned long diff = atoi(tmpstr2.c_str()); //converting Time Daemon's clock from char array to integer value
+  unsigned long diff = atoi(tmpstr2.c_str()); 
 
   tot = tot + diff;     //Adding all time differences
 
@@ -88,9 +88,9 @@ void *NewConnection(void *newsockfd) //thread function for each client request
     continue;
   }
 
-  Berkeley((long)newsockfd);
+  Berkeley((long) newsockfd);
 
-  close((long)newsockfd);
+  close((long) newsockfd);
   pthread_exit(NULL);
 }
 
@@ -128,12 +128,12 @@ void sync(int portno, chrono::time_point<std::chrono::steady_clock> start){
 
   l_clock = chrono::duration_cast<chrono::milliseconds>(end - start).count();        // Defining the range of random numbers from 5 to 30
 
-  listen(sockfd,10);
+  listen(sockfd, 10);
   clilen = sizeof(cli_addr);
 
-  cout << "Enter the total number of machines to connect: ";
-//  cin >> t;
-  t = 2;
+  // cout << "Enter the total number of machines to connect: " ;
+  //  cin >> t;
+  t = 1;
 
   cout << "Time Daemon's Logical Clock: " << l_clock << endl;
 

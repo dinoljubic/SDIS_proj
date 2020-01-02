@@ -2,17 +2,20 @@
 #include <WiFiUdp.h>
 #include <string.h>
 
-const char *ssid     = "SFR-4a38bis";
-const char *password = "Master1212";
+const char *ssid     = "HUAWEI-B315-5F9A";
+const char *password = "NH20M0HYENR";
 
 const long utcOffsetInSeconds = 0;
 
 const unsigned int portno = 5000;
-char          incomingPacket[255];  // buffer for incoming packets
-char          replyPacket[255] ;  // a reply string to send back
-char          message[255];
+char incomingPacket[255]; // buffer for incoming packets
+char replyPacket[255];  // a reply string to send back
+char message[255];
 
-const string server = "192.168.32.1" ;
+int i = 0;
+const char server[] = "192.168.8.103" ;
+
+WiFiUDP Udp;
 
 void setup(){
   Serial.begin(9600);
@@ -35,54 +38,58 @@ void setup(){
 int sync(int portno){
 	// parametros locales
 	unsigned long currentLogicalClock = millis();
-	char buffer[256];y
+	char buffer[256];
+  int packetSize;
 
 	// srand(time(0));						// Initiating the random function with current time as input
-	l_clock = (random(5,25));				// Defining the range of random numbers from 5 to 30
+  //	currentLogicalClock = (random(5,25));				// Defining the range of random numbers from 5 to 30
 
 
 
-	Serial.printf("My logical Clock: %d\n" ,l_clock); // Printing machine's local logical clock
+	Serial.printf("My logical Clock: %d\n" ,currentLogicalClock); // Printing machine's local logical clock
 
 	do{
-		int packetSize = Udp.parsePacket();
+		packetSize = Udp.parsePacket();
 		delay(10);
 	} while(!packetSize);
 	int len = Udp.read(incomingPacket, 255);
-    if (len > 0)incomingPacket[len] = 0;
-    Serial.printf("UDP packet contents at %ld: %s\n", currentMillis,incomingPacket);
+  if (len > 0)incomingPacket[len] = 0;
+  Serial.printf("UDP packet contents at %ld: %s\n", currentLogicalClock,incomingPacket);
 
-    unsigned long tmp = atol(incomingPacket.c_str());
+  unsigned long tmp = atol(incomingPacket);// esto no se si esta bien
 
 	unsigned long diff = currentLogicalClock - tmp;		// Calculating time difference of local machine from Time Daemon
 	Serial.print("My Time Difference from TD: " );
 	Serial.println(diff);
 
-	Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());;
+	Udp.beginPacket(server, portno);
 	sprintf(replyPacket,"%f", diff);
 
 	do{
-		int packetSize = Udp.parsePacket();
+		packetSize = Udp.parsePacket();
 		delay(10);
 	} while(!packetSize);
-	int len = Udp.read(incomingPacket, 255);
-    if (len > 0) incomingPacket[len] = 0;
+	len = Udp.read(incomingPacket, 255);
+  
+  if (len > 0) incomingPacket[len] = 0;
 
 	Serial.printf("Average is= %s\n", buffer);
 
-	int adj_clock = atol(incomingPacket.c_str());
+	int adj_clock = atol(incomingPacket);
 
-	l_clock = l_clock + adj_clock;
+	currentLogicalClock = currentLogicalClock + adj_clock;
 
-	cout << "My Adjusted clock: " << l_clock << endl;
+	Serial.printf("My Adjusted clock:  %d\n", currentLogicalClock);
 
-	return l_clock;
+	return currentLogicalClock;
 }
 
 void loop(){
 
-	Serial.println("Iteracao num: " << i << endl);
+	Serial.printf("Iteracao num: %d \n", i);
 	sync(portno);
-	closeSync();
-	// sleep(1);
+  i = i + 1;
+  
+//	closeSync();
+//  sleep(1);
 }
