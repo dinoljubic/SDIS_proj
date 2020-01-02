@@ -16,6 +16,8 @@ Client queries the Time Daemon and adjusts it's clock according to Berkeley's al
 #include <ctime>
 using namespace std;
 
+auto begin = chrono::steady_clock::now();
+
 void error(const char *msg)
 {
 	perror(msg);
@@ -32,7 +34,7 @@ void startSync(int portno){
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if(sockfd < 0)
-		error("ERROR opening socket");
+		printf("ERROR opening socket");
 
 	server = gethostbyname("localhost");
 
@@ -51,15 +53,13 @@ void startSync(int portno){
 
 	// end opening
 }
-int sync(int portno){
+int sync(int portno, chrono::time_point<std::chrono::steady_clock> start){
 	// parametros locales
-	int l_clock = 0;
+	unsigned long l_clock = 0;
 	char buffer[256];
 
-	srand(time(0));						// Initiating the random function with current time as input
-	l_clock = (rand()%25) + 5;				// Defining the range of random numbers from 5 to 30
-
-
+	auto end = chrono::steady_clock::now();
+	l_clock = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
 	cout << "My logical Clock: " << l_clock << endl; // Printing machine's local logical clock
 
@@ -75,9 +75,9 @@ int sync(int portno){
 	ss << buffer;
 	string tmpstr1 = ss.str();
 
-	int tmp = atoi(tmpstr1.c_str());	// converting Time Daemon's clock from char array to integer value
+	unsigned long tmp = atol(tmpstr1.c_str());	// converting Time Daemon's clock from char array to integer value
 
-	int diff = l_clock - tmp;		// Calculating time difference of local machine from Time Daemon
+	unsigned long diff = l_clock - tmp;		// Calculating time difference of local machine from Time Daemon
 	cout << "My Time Difference from TD: "<< diff << endl;
 
 	bzero(buffer,256);
@@ -94,13 +94,12 @@ int sync(int portno){
 	n = read(sockfd,buffer,255);			// Reading the final average value to be adjusted in local machine's logical clock
 	printf("Clock Adjustment= %s\n",buffer);
 
-	int adj_clock = atoi(buffer);
+	unsigned long adj_clock = atoi(buffer);
 
 	l_clock = l_clock + adj_clock;
 
 	cout << "My Adjusted clock: " << l_clock << endl;
 
-	
 	return l_clock;
 }
 
@@ -115,14 +114,14 @@ int main(int argc, char *argv[])
 		fprintf(stderr,"usage %s port\n", argv[0]);
 		exit(0);
 	}
-	int portno = atoi(argv[1]);
-
 	
+	chrono::time_point<std::chrono::steady_clock> start = chrono::steady_clock::now();
+	int portno = atoi(argv[1]);
 
 	for (int i = 0; i < 5; ++i) {
 		startSync(portno);
 		cout << "Iteracao num: " << i << endl;
-		sync(portno);
+		sync(portno, start);
 		closeSync();
 		// sleep(1);
 	}

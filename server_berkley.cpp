@@ -16,6 +16,8 @@
 
 using namespace std;
 
+// chrono::steady_clock begin;
+
 void error(const char *msg) //function to print error messages
 {
   perror(msg);
@@ -25,9 +27,10 @@ void error(const char *msg) //function to print error messages
 char buffer[256];
 int n;
 
-int l_clock = 0, tot = 0, avg = 0, cnt = 0, t=0;
+int cnt = 0, t=0;
+unsigned long l_clock = 0, tot = 0, avg = 0;
 
-long sockfd, newsockfd[10];//, portno;
+long sockfd, newsockfd[10]; //, portno;
 socklen_t clilen;
 
 struct sockaddr_in serv_addr, cli_addr;
@@ -39,7 +42,7 @@ void Berkeley(long newsockfd)
   stringstream ss, ss1, ss2;
   ss << l_clock;
   string tmpstr1 = ss.str();        // Converting clock value from int to string or char array
-  strcpy(buffer,tmpstr1.c_str());       // Now converting from string to const char *
+  strcpy(buffer, tmpstr1.c_str());  // Now converting from string to const char *
   
   n = write((long)newsockfd,buffer,strlen(buffer)); // Sending Time Daemon's logical clock to connected machine
   if (n < 0) error("ERROR writing to socket");
@@ -51,7 +54,7 @@ void Berkeley(long newsockfd)
   ss1 << buffer;
   string tmpstr2 = ss1.str();
   
-  int diff = atoi(tmpstr2.c_str()); //converting Time Daemon's clock from char array to integer value
+  unsigned long diff = atoi(tmpstr2.c_str()); //converting Time Daemon's clock from char array to integer value
 
   tot = tot + diff;     //Adding all time differences
 
@@ -59,7 +62,7 @@ void Berkeley(long newsockfd)
 
   avg = tot/(cnt+1);      //Taking average of the total time differences
 
-  int adj_clock = avg - diff;   //Calculating the average time adjustment for each clock
+  unsigned long adj_clock = avg - diff;   //Calculating the average time adjustment for each clock
 
   bzero(buffer,256);
   
@@ -117,14 +120,13 @@ void startSync(int portno){
 
 
 
-void sync(int portno){
+void sync(int portno, chrono::time_point<std::chrono::steady_clock> start){
 
   pthread_t threads[10];  //threads for handling client requests
   srand(time(0));           // Initiating the random function with current time as input
-  l_clock = (rand()%25) + 5;        // Defining the range of random numbers from 5 to 30
+  auto end = chrono::steady_clock::now();
 
-
-  
+  l_clock = chrono::duration_cast<chrono::milliseconds>(end - start).count();        // Defining the range of random numbers from 5 to 30
 
   listen(sockfd,10);
   clilen = sizeof(cli_addr);
@@ -179,15 +181,26 @@ int main(int argc, char *argv[])
     fprintf(stderr,"ERROR, no port provided\n");
     exit(1);
   }
+  chrono::time_point<std::chrono::steady_clock> start = chrono::steady_clock::now();
 
   int portno = atoi(argv[1]);
   startSync(portno);
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 10; ++i) {
     cnt = 0;
     cout << "Iteracao num: " << i << endl;
-    sync(portno);
+    sync(portno, start);
     // sleep(1);
   }
   closeSync();
+  // auto start = chrono::steady_clock::now();
+
+  // do some stuff here
+  // sleep(3);
+
+  // auto end = chrono::steady_clock::now();
+
+  // cout << "Elapsed time in nanoseconds : " 
+  //   << chrono::duration_cast<chrono::nanoseconds>(end - start).count()
+  //   << " ns" << endl;
 
 }

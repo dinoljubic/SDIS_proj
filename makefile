@@ -6,5 +6,5 @@ Client:
 clean:
 	rm server client
 all:
-	g++ server_berkley.cpp -o server -pthread
-	g++ slave_berkley.cpp -o client -pthread
+	g++ -std=c++11 server_berkley.cpp -o server -pthread
+	g++ -std=c++11 slave_berkley.cpp -o client -pthread
