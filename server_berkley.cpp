@@ -28,7 +28,7 @@ char buffer[256];
 int n;
 
 int cnt = 0, t=0;
-unsigned long l_clock = 0, tot = 0, avg = 0;
+long l_clock = 0, tot = 0, avg = 0;
 
 long sockfd, newsockfd[10]; //, portno;
 socklen_t clilen;
@@ -44,6 +44,8 @@ void Berkeley(long newsockfd)
   string tmpstr1 = ss.str();        // Converting clock value from int to string or char array
   strcpy(buffer, tmpstr1.c_str());  // Now converting from string to const char *
   
+
+  chrono::time_point<std::chrono::steady_clock> rtt_t0 = chrono::steady_clock::now();
   n = write((long)newsockfd,buffer,strlen(buffer)); // Sending Time Daemon's logical clock to connected machine
   if (n < 0) error("ERROR writing to socket");
 
@@ -51,12 +53,17 @@ void Berkeley(long newsockfd)
 
   bzero(buffer,256);
   read((long)newsockfd,buffer,255);     // Reading the specific time difference of connected machines
+  chrono::time_point<std::chrono::steady_clock> rtt_t1 = chrono::steady_clock::now();
+  long rtt= chrono::duration_cast<chrono::milliseconds>(rtt_t1 - rtt_t0).count();
+
   cout << "Time Difference of Machine '" << newsockfd << "' : " << buffer << endl;
+  cout << "RTT: '" << newsockfd << "' : " << rtt << endl;
+
   
   ss1 << buffer;
   string tmpstr2 = ss1.str();
   
-  unsigned long diff = atoi(tmpstr2.c_str()); 
+  long diff = atoi(tmpstr2.c_str()); 
 
   tot = tot + diff;     //Adding all time differences
 
@@ -64,8 +71,9 @@ void Berkeley(long newsockfd)
 
   avg = tot/(cnt+1);      //Taking average of the total time differences
 
-  unsigned long adj_clock = avg - diff;   //Calculating the average time adjustment for each clock
-
+  long adj_clock =  avg - diff;   //Calculating the average time adjustment for each clock
+  cout << "L_clock: '" << newsockfd << "' : " << adj_clock << endl;
+  
   bzero(buffer,256);
   
   ss2 << adj_clock;
@@ -90,7 +98,7 @@ void *NewConnection(void *newsockfd) //thread function for each client request
     continue;
   }
 
-  cout << "begin the party" << endl;
+  // cout << "begin the party" << endl;
 
   Berkeley((long) newsockfd);
 
@@ -165,9 +173,9 @@ void sync(int portno, chrono::time_point<std::chrono::steady_clock> start){
   }
 
   cout << "Clock adjustment: " << avg << endl;
-  l_clock = l_clock + avg;
+  // l_clock = l_clock + avg;
 
-  cout << "My Adjusted clock: " << l_clock << endl;
+  // cout << "My Adjusted clock: " << l_clock << endl;
 
 
 }

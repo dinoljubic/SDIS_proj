@@ -8,9 +8,9 @@ const char *password = "NH20M0HYENR";
 const long utcOffsetInSeconds = 0;
 
 const unsigned int portno = 5000;
-unsigned long adj_clock;
+long adj_clock;
 
-unsigned long clock_treshold = 0;
+long clock_treshold = 0;
 bool on = true;
 
 //char incomingPacket[255]; // buffer for incoming packets
@@ -47,8 +47,10 @@ void sync(int portno){
     Serial.println("connection failed");
     delay(1000);
   }
+  client.flush();
+  client.setDefaultNoDelay(true);
 	// parametros locales
-	unsigned long currentLogicalClock = millis();
+	long currentLogicalClock;
 	char buffer[256];
 	int packetSize;
 
@@ -62,23 +64,25 @@ void sync(int portno){
 	}
   Serial.println();
   
+  
   String incomingPacket;
 	if(client.available()){ // while o if yo no se
      incomingPacket = client.readStringUntil('\r');
   }
 	
-	Serial.printf("TCP contents at %ld: ", currentLogicalClock);
+	Serial.print("TCP contents at : "); Serial.println(currentLogicalClock);
   Serial.println(incomingPacket);
   
-	unsigned long tmp = incomingPacket.toDouble();    // esto no se si esta bien
-
-	unsigned long diff = currentLogicalClock - tmp;		// Calculating time difference of local machine from Time Daemon
+	long tmp = incomingPacket.toDouble();    // esto no se si esta bien
+  currentLogicalClock = millis();
+	long diff = currentLogicalClock - tmp;		// Calculating time difference of local machine from Time Daemon
 	Serial.print("My Time Difference from TD: " );
 	Serial.println(diff);
-
+  
 	if (client.connected()) {
       client.println(diff);
   }
+  client.flush();
 
   Serial.print("Esperando");
   while(client.available() == 0){
@@ -91,7 +95,8 @@ void sync(int portno){
       incomingPacket = client.readStringUntil('\r');
   }
   
-	Serial.printf("Average is= %s\n", buffer);
+	Serial.print("Clock adjustment is= ");
+  Serial.println(incomingPacket);
 
 	adj_clock = incomingPacket.toDouble();
 
@@ -99,12 +104,14 @@ void sync(int portno){
 
 	Serial.printf("My Adjusted clock:  %d\n", currentLogicalClock);
 
+  client.stop();
+
 }
 
 
 
 void loop(){
-  unsigned long now_clock = millis();
+  long now_clock = millis();
   if( now_clock + adj_clock >= clock_treshold ){
     Serial.printf("Iteracao num: %d \n", i);
     //  startSync();

@@ -109,12 +109,11 @@ void closeSync(){
 
 int main(int argc, char *argv[])
 {
-
 	if(argc < 2) {
 		fprintf(stderr,"usage %s port\n", argv[0]);
 		exit(0);
 	}
-	
+
 	chrono::time_point<std::chrono::steady_clock> start = chrono::steady_clock::now();
 	int portno = atoi(argv[1]);
 
@@ -125,8 +124,5 @@ int main(int argc, char *argv[])
 		closeSync();
 		// sleep(1);
 	}
-
-
-
 	return 0;
 }
