@@ -13,32 +13,12 @@
 
 #define DEBUG   1
 
-#define SERVER  1
-#define CLIENT  2
-
-/* Change server/client role here *********/
-#define esp     SERVER
-/******************************************/
-
-// TODO: 2 tests - (1) toggle both LED's at the same time; (2) Round-trip msg to toggle own LED
-#define test    2
-
-#if esp==1
+#define WIFI_AP_MAX_CONN    5
 #define DEMO_AP_SSID        "laptop"
 #define DEMO_AP_PASSWORD    "pasvordddd"
 
-#define SOFT_AP_SSID        "ESP_AP"
-#define SOFT_AP_PASSWORD    "123456789"
-#else
-#define DEMO_AP_SSID        "ESP_AP"
-#define DEMO_AP_PASSWORD    "123456789"
-
-#define SOFT_AP_SSID        "ESP2_AP"
-#define SOFT_AP_PASSWORD    "123456789"
-#endif
-
-#define UDP_SERVER_LOCAL_PORT   1024
-#define UDP_CLIENT_LOCAL_PORT   4444
+#define UDP_SEND_PORT   1024
+#define UDP_RECV_PORT   4444
 
 // Clock testing parameters
 #define CKT_SHO     60
@@ -53,12 +33,16 @@
 #define serial_test_task_prior  4
 #define UDP_client_task_mem     200
 #define UDP_client_task_prior   5
-#define UDP_server_task_mem     300
-#define UDP_server_task_prior   4
+
+#define UDP_TASK_PERIOD         1000
 
 
 // Various parameters
 // Clock
+#define CLK_TICK_PERIOD_US      1000
+#define CLK_PERIOD_MS           1000
+#define CLK_UPDATE_PERC         5
+
 #define CLOCK_EVT_QUEUE_SIZE    40
 #define CLOCK_HWTIMER_FREQ_DIV  16
 #define CLOCK_TIMER_PERIOD_US   1000
@@ -66,7 +50,8 @@
 
 #define DELAY_MS(t)             (t)/portTICK_RATE_MS
 
-#define TIME_CORR_AVERAGE       10
+// Sync
+#define UDP_MIN_MEAS            3
 
 // Debug macros
 #if DEBUG

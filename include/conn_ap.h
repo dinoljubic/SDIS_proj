@@ -35,7 +35,6 @@ typedef struct {
     uint16  sendPort;
 } device_t;
 
-#define WIFI_AP_MAX_CONN    10
 
 void wifi_init_task( void *param );
 void conn_ap_init(void);

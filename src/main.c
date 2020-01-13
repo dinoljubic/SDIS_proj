@@ -46,14 +46,12 @@ void user_init(void)
 
     boardIO_init();
     serial_init(BIT_RATE_9600);
-    clock_init(0, 1000);
+    clock_init();
 
     printf("Initialized.\n");
     
-    //xTaskCreate(udpClient_Test, "udpClient_Test", 500, NULL, 6, NULL);
     xTaskCreate(wifi_init_task, "WiFi init task", 500, NULL, 6, NULL);
-
-    // xTaskCreate(&clk_test, "wifi", 300, NULL, 1, NULL);
+    xTaskCreate(udpClient, "udpClient", 500, NULL, 5, NULL);
 
 }
 
