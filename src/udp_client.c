@@ -213,7 +213,7 @@ void udpServer(void*arg)
 
     os_timer_disarm(&time1);
     os_timer_setfn(&time1, t1Callback, NULL);
-    os_timer_arm(&time1, 3000, 1);
+    os_timer_arm(&time1, 1000, 1);
 
     // Initialize possible client IPs
     for (uint8 i=0; i<WIFI_AP_MAX_CONN; i++){
